@@ -1,0 +1,107 @@
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Smart Water Tracker',
+      home: WaterScreen(),
+    );
+  }
+}
+
+class WaterScreen extends StatefulWidget {
+  @override
+  State<WaterScreen> createState() => _WaterScreenState();
+}
+
+class _WaterScreenState extends State<WaterScreen> {
+  int totalWater = 0;
+  final int dailyGoal = 2000;
+
+  TextEditingController waterController = TextEditingController();
+
+  void addWater() {
+    int water = int.parse(waterController.text);
+
+    setState(() {
+      totalWater = totalWater + water;
+    });
+
+    waterController.clear();
+  }
+
+  void resetWater() {
+    setState(() {
+      totalWater = 0;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Smart Water Tracker'),
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Text(
+              'Daily Water Goal',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 10),
+            Text(
+              '$dailyGoal mL',
+              style: TextStyle(
+                fontSize: 30,
+                color: Colors.blue,
+              ),
+            ),
+            SizedBox(height: 30),
+            TextField(
+              controller: waterController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Enter water amount (mL)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: addWater,
+              child: Text('Add Water'),
+            ),
+            SizedBox(height: 30),
+            Text(
+              'Total Consumed',
+              style: TextStyle(fontSize: 20),
+            ),
+            Text(
+              '$totalWater mL',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 30),
+            ElevatedButton(
+              onPressed: resetWater,
+              child: Text('Reset'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
