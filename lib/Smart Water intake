@@ -1,0 +1,413 @@
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+void main() {
+  runApp(const WaterTrackerApp());
+}
+
+class WaterTrackerApp extends StatelessWidget {
+  const WaterTrackerApp({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Water Tracker',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: const Color(0xffF4F9FF),
+        useMaterial3: true,
+      ),
+      home: const HomePage(),
+    );
+  }
+}
+
+// ---------------- HOME PAGE ----------------
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  int water = 0;
+  int goal = 3000;
+  @override
+  void initState() {
+    super.initState();
+    loadWater();
+  }
+
+  Future<void> loadWater() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      water = prefs.getInt('water') ?? 0;
+      goal = prefs.getInt('goal') ?? 2000;
+    });
+  }
+
+  Future<void> addWater(int amount) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      water += amount;
+      if (water > goal) water = goal;
+    });
+    await prefs.setInt('water', water);
+  }
+  Future<void> resetWater() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      water = 0;
+    });
+    await prefs.setInt('water', 0);
+  }
+  void showCustomAmount() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Add Water"),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: "Amount in ml",
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                int amount = int.tryParse(controller.text) ?? 0;
+
+                if (amount > 0) {
+                  addWater(amount);
+                }
+                Navigator.pop(context);
+              },
+              child: const Text("Add"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+  @override
+  Widget build(BuildContext context) {
+    double progress = water / goal;
+    if (progress > 1) progress = 1;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          "Water Tracker 💧",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => HistoryPage(
+                    water: water,
+                    goal: goal,
+                  ),
+                ),
+              );
+            },
+          )
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            const Text(
+              "Stay Hydrated!",
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
+              ),
+            ),
+            const SizedBox(height: 5),
+            const Text(
+              "Keep drinking water throughout the day.",
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 25),
+            // Progress Card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(25),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.15),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        height: 180,
+                        width: 180,
+                        child: CircularProgressIndicator(
+                          value: progress,
+                          strokeWidth: 15,
+                          backgroundColor: Colors.blue.shade50,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      Column(
+                        children: [
+                          const Icon(
+                            Icons.water_drop,
+                            color: Colors.blue,
+                            size: 35,
+                          ),
+                          Text(
+                            "$water ml",
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            "of $goal ml",
+                            style: const TextStyle(
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    "${(progress * 100).toInt()}% of your daily goal",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 25),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Quick Add",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 15),
+            Row(
+              children: [
+                waterButton(200),
+                const SizedBox(width: 12),
+                waterButton(300),
+                const SizedBox(width: 12),
+                waterButton(500),
+              ],
+            ),
+            const SizedBox(height: 15),
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: OutlinedButton.icon(
+                onPressed: showCustomAmount,
+                icon: const Icon(Icons.add),
+                label: const Text(
+                  "Enter Custom Amount",
+                  style: TextStyle(fontSize: 16),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton.icon(
+                onPressed: resetWater,
+                icon: const Icon(Icons.refresh),
+                label: const Text(
+                  "Reset Today's Intake",
+                  style: TextStyle(fontSize: 16),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 25),
+            // Goal Card
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.flag,
+                    color: Colors.blue,
+                    size: 30,
+                  ),
+                  const SizedBox(width: 15),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Daily Goal",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        "$goal ml",
+                        style: const TextStyle(
+                          color: Colors.blue,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  Widget waterButton(int amount) {
+    return Expanded(
+      child: ElevatedButton(
+        onPressed: () => addWater(amount),
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.blue,
+          elevation: 2,
+        ),
+        child: Text(
+          "+$amount ml",
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+}
+// ---------------- HISTORY PAGE ----------------
+class HistoryPage extends StatelessWidget {
+  final int water;
+  final int goal;
+  const HistoryPage({
+    super.key,
+    required this.water,
+    required this.goal,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Today's Summary"),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const SizedBox(height: 30),
+            const Icon(
+              Icons.water_drop,
+              size: 80,
+              color: Colors.blue,
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "Today's Water Intake",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 30),
+            Card(
+              child: ListTile(
+                leading: const Icon(
+                  Icons.local_drink,
+                  color: Colors.blue,
+                ),
+                title: const Text("Water Consumed"),
+                trailing: Text(
+                  "$water ml",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                ),
+              ),
+            ),
+            Card(
+              child: ListTile(
+                leading: const Icon(
+                  Icons.flag,
+                  color: Colors.green,
+                ),
+                title: const Text("Daily Goal"),
+                trailing: Text(
+                  "$goal ml",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              water >= goal
+                  ? "🎉 Goal Completed!"
+                  : "${goal - water} ml remaining",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: water >= goal ? Colors.green : Colors.orange,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
